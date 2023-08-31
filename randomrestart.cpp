@@ -211,15 +211,38 @@ int main(){
     cout<<best<<endl;
 }
 
-vector<vector<int>> neighbours(vector<vector<int>> &locs, vector<vector<int>> &zones, vector<int> &mapping){
+int fast_compute_swap(vector<vector<int>> &locs, vector<vector<int>> &zones, vector<int> &mapping,int obj, int i, int j){
     int l = locs.size();
     int z = zones.size();
-    vector<vector<int>> neighbours;
+    for(int k=0;k<z;k++){
+        int prev= zones[i][k]*locs[k][mapping[i]]+zones[k][i]*locs[mapping[i]][k]+zones[j][k]*locs[k][mapping[j]]+zones[k][j]*locs[mapping[j]][k];
+        int next= zones[i][k]*locs[k][mapping[j]]+zones[k][i]*locs[mapping[j]][k]+zones[j][k]*locs[k][mapping[i]]+zones[k][j]*locs[mapping[i]][k];
+        obj += next-prev;
+    }
+    return obj;
+}
+
+int fast_compute_change(vector<vector<int>> &locs, vector<vector<int>> &zones, vector<int> &mapping,int obj, int i, int j){
+    int l = locs.size();
+    int z = zones.size();
+    for(int k=0;k<z;k++){
+        int prev= zones[i][k]*locs[k][mapping[i]]+zones[k][i]*locs[mapping[i]][k];
+        int next= zones[i][k]*locs[k][j]+zones[k][i]*locs[j][k];
+        obj += next-prev;
+    }
+    return obj;
+}
+
+vector<pair<vector<int>,int>> neighbours(vector<vector<int>> &locs, vector<vector<int>> &zones, vector<int> &mapping,int obj){
+    int l = locs.size();
+    int z = zones.size();
+    vector<pair<vector<int>,int>> neighbours;
     for(int i=0;i<z;i++){
         for(int j=i+1;j<z;j++){
             vector<int> temp = mapping;
             swap(temp[i],temp[j]);
-            neighbours.push_back(temp);
+            int next = fast_compute_swap(locs,zones,mapping,obj,i,j);
+            neighbours.push_back({temp,next});
         }
     }
     unordered_set<int> s;
@@ -231,7 +254,8 @@ vector<vector<int>> neighbours(vector<vector<int>> &locs, vector<vector<int>> &z
             for(int j=0;j<z;j++){
                 vector<int> temp = mapping;
                 temp[j] = i;
-                neighbours.push_back(temp);
+                int next = fast_compute_change(locs,zones,mapping,obj,j,i);
+                neighbours.push_back({temp,next});
             }
         }   
     }
@@ -246,10 +270,10 @@ pair<vector<int>,int> dfs(vector<vector<int>> &locs, vector<vector<int>> &zones,
     if(obj > bound){
         return {};
     }
-    vector<vector<int>> neighbour = neighbours(locs,zones,mapping);
+    vector<pair<vector<int>,int>> neighbour = neighbours(locs,zones,mapping,obj);
     vector<int> best_mapping=mapping;
     for(auto x : neighbour){
-        pair<vector<int>,int> res = dfs(locs,zones,x,cutoff_length-1,bound,objective(locs,zones,x));
+        pair<vector<int>,int> res = dfs(locs,zones,x.first,cutoff_length-1,bound,x.second);
         if(res.first.size() != 0){
             if(res.second < best){
                 best = res.second;
