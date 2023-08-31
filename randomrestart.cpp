@@ -1,6 +1,10 @@
 #include <iostream>
 #include <stdio.h>
 #include <vector>
+#include <algorithm>
+#include <assert.h>
+#include <unordered_set>
+#include <climits>
 
 using namespace std;
 
@@ -205,4 +209,53 @@ int main(){
     }
     cout<<" : ";
     cout<<best<<endl;
+}
+
+vector<vector<int>> neighbours(vector<vector<int>> &locs, vector<vector<int>> &zones, vector<int> &mapping){
+    int l = locs.size();
+    int z = zones.size();
+    vector<vector<int>> neighbours;
+    for(int i=0;i<z;i++){
+        for(int j=i+1;j<z;j++){
+            vector<int> temp = mapping;
+            swap(temp[i],temp[j]);
+            neighbours.push_back(temp);
+        }
+    }
+    unordered_set<int> s;
+    for(int i=0;i<z;i++){
+        s.insert(mapping[i]);
+    }
+    for(int i=1;i<=l;i++){
+        if(s.find(i) == s.end()){
+            for(int j=0;j<z;j++){
+                vector<int> temp = mapping;
+                temp[j] = i;
+                neighbours.push_back(temp);
+            }
+        }   
+    }
+    return neighbours;
+}
+
+pair<vector<int>,int> dfs(vector<vector<int>> &locs, vector<vector<int>> &zones, vector<int> &mapping,int cutoff_length, int bound,int obj){
+    if(cutoff_length == 0){
+        return {mapping,obj};
+    }
+    int best=obj;
+    if(obj > bound){
+        return {};
+    }
+    vector<vector<int>> neighbour = neighbours(locs,zones,mapping);
+    vector<int> best_mapping=mapping;
+    for(auto x : neighbour){
+        pair<vector<int>,int> res = dfs(locs,zones,x,cutoff_length-1,bound,objective(locs,zones,x));
+        if(res.first.size() != 0){
+            if(res.second < best){
+                best = res.second;
+                best_mapping = res.first;
+            }
+        }
+    }
+    return {best_mapping,best};
 }
